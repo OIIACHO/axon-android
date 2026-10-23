@@ -1,0 +1,46 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build debug APK
+        run: gradle assembleDebug --stacktrace --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AXON-debug
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Publish release v0.1.0-alpha
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create v0.1.0-alpha app/build/outputs/apk/debug/*.apk \
+            --title "AXON v0.1.0-alpha" \
+            --target main \
+            --notes "Умный менеджер подписок. Парсер vless/vmess/trojan/ss, движок гигиены (дубли, небезопасные, битые), TCP-проба, самотест из 10 узлов. Alpha-концепт." \
+          || gh release upload v0.1.0-alpha app/build/outputs/apk/debug/*.apk --clobber
